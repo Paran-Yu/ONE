@@ -24,3 +24,17 @@ $ ./compiler/circle-opselector-test/opselector_test.sh Part_Sqrt_Rsqrt_Add_002 "
 python ./opselector_test.py
 ```
 
+
+
+**CLI Option test**
+
+- This test is checking cli options roughly.
+
+- Use only one tflite file(Part_Sqrt_Rsqrt_002.circle)
+
+```Shell
+python ./cli_test.py
+```
+
+
+
