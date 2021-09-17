@@ -5,7 +5,7 @@
 red=`tput setaf 1`
 blue=`tput setaf 4`
 VERIFY_SOURCE_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd $VERIFY_SOURCE_PATH/../../../
+cd $VERIFY_SOURCE_PATH/../../
 ROOT_PATH=`pwd`
 
 TFLITE_NAME="$1"

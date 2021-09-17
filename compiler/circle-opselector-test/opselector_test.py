@@ -8,7 +8,7 @@ os.chdir(script_path)
 
 with open('test.lst') as f:
     tflite_files = f.readlines()
-TFLITE_FILES_FOLDER = '../../../build/compiler/common-artifacts/'
+TFLITE_FILES_FOLDER = '../../build/compiler/common-artifacts/'
 tflite_files = [x.strip()+'.tflite' for x in tflite_files]
 
 
