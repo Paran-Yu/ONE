@@ -15,6 +15,7 @@
  */
 
 #include "OpSelector.h"
+#include "selector.h"
 // TODO Add new pass headers
 
 #include <foder/FileLoader.h>
@@ -123,78 +124,6 @@ void split_name_input(const std::string &str, std::vector<std::string> &by_name)
     by_name.push_back(str_buf);
 }
 
-void getOplist(std::string op, std::vector<int> &oplist)
-{
-  char op_buf[1000];
-  strcpy(op_buf, op.c_str());
-  char *op_next = op_buf;
-
-  // tokenize by ,
-  char *tok_comma = strtok_r(op_buf, ",", &op_next);
-  while (tok_comma != nullptr)
-  {
-    char buf[100];
-    strcpy(buf, tok_comma);
-    char *buf_next = buf;
-
-    if (isdigit(tok_comma[0]))
-    {
-      int start, end;
-      // "n-m" : select n~m
-      char *tok_hypen = strtok_r(buf, "-", &buf_next);
-      if (tok_hypen && isdigit(tok_hypen[0]))
-      {
-        start = atoi(tok_hypen);
-      }
-
-      tok_hypen = strtok_r(nullptr, "-", &buf_next);
-      // "n-m" : select n~m
-      if (tok_hypen && isdigit(tok_hypen[0]))
-      {
-        end = atoi(tok_hypen);
-        for (int i = start; i <= end; i++)
-          oplist.push_back(i);
-      }
-      // "n-:" : select n~
-      else if (tok_hypen && tok_hypen[0] == ':')
-      {
-        oplist.push_back(start);
-        oplist.push_back(-1);
-      }
-      // "n" : select n
-      else
-      {
-        oplist.push_back(start);
-      }
-    }
-    // ":-n" : select 0~n
-    else if (tok_comma[0] == ':')
-    {
-      char *tok_hypen = strtok_r(buf, "-", &buf_next);
-      tok_hypen = strtok_r(nullptr, "-", &buf_next);
-      if (tok_hypen && isdigit(tok_hypen[0]))
-      {
-        int end = atoi(tok_hypen);
-        for (int i = 0; i <= end; i++)
-          oplist.push_back(i);
-      }
-    }
-    else
-    {
-      std::cout << "Error: Cannot get operators" << std::endl;
-    }
-
-    tok_comma = strtok_r(nullptr, ",", &op_next);
-  }
-
-  sort(oplist.begin(), oplist.end());
-
-  std::cout << "result: ";
-  for (int i = 0; i < oplist.size(); i++)
-    std::cout << oplist[i] << " ";
-  std::cout << std::endl;
-}
-
 int entry(int argc, char **argv)
 {
   // TODO Add new option names!
@@ -210,8 +139,8 @@ int entry(int argc, char **argv)
 
   // TODO Add new options!
 
-  arser.add_argument("--input").nargs(1).type(arser::DataType::STR).help("Input circle model");
-  arser.add_argument("--output").nargs(1).type(arser::DataType::STR).help("Output circle model");
+  arser.add_argument("input").type(arser::DataType::STR).help("Input circle model");
+  arser.add_argument("output").type(arser::DataType::STR).help("Output circle model");
 
   // select option
   arser.add_argument("--by_id")
@@ -222,14 +151,6 @@ int entry(int argc, char **argv)
     .nargs(1)
     .type(arser::DataType::STR)
     .help("Input operation name to select nodes.");
-  arser.add_argument("--select")
-    .nargs(1)
-    .type(arser::DataType::STR)
-    .help("Selecte opeartors from the input circle");
-  arser.add_argument("--deselect")
-    .nargs(1)
-    .type(arser::DataType::STR)
-    .help("Exclude operators from the input circle");
 
   try
   {
@@ -242,8 +163,8 @@ int entry(int argc, char **argv)
     return EXIT_FAILURE;
   }
 
-  std::string input_path = arser.get<std::string>("--input");
-  std::string output_path = arser.get<std::string>("--output");
+  std::string input_path = arser.get<std::string>("input");
+  std::string output_path = arser.get<std::string>("output");
 
   std::string operator_input;
 
@@ -263,18 +184,6 @@ int entry(int argc, char **argv)
     operator_input = arser.get<std::string>("--by_name");
     split_name_input(operator_input, by_name);
   }
-  if (arser["--select"])
-  {
-    op = arser.get<std::string>("--select");
-    select_mode = 0;
-    getOplist(op, oplist);
-  }
-  if (arser["--deselect"])
-  {
-    op = arser.get<std::string>("--deselect");
-    select_mode = 1;
-    getOplist(op, oplist);
-  }
 
   // option parsing test code.
   for (int x : by_id)
@@ -283,7 +192,7 @@ int entry(int argc, char **argv)
   for (std::string line : by_name)
     std::cout << "by_name: " << line << std::endl;
 
-  // Load model from the file
+  // Load model from a circle file
   foder::FileLoader file_loader{input_path};
   std::vector<char> model_data = file_loader.load();
 
@@ -301,6 +210,13 @@ int entry(int argc, char **argv)
     std::cerr << "ERROR: Failed to load circle '" << input_path << "'" << std::endl;
     return EXIT_FAILURE;
   }
+
+  // MINE
+  selector::Operators *operators = new selector::Operators();
+  operators->run(circle_model);
+
+
+  //
 
   // Import from input Circle file
   luci::Importer importer;
@@ -320,12 +236,17 @@ int entry(int argc, char **argv)
           id_name_selected_nodes[iter->first] = iter->second; // {id : name} mapping
     }
 
-    module = selector->select_nodes(circle_model, id_name_selected_nodes);
+    std::map<uint32_t, std::string>::iterator iter;
+    for(iter = id_name_selected_nodes.begin(); iter!=id_name_selected_nodes.end(); iter++)
+      std::cout << "[" << iter->first << "," << iter->second << "] ";
+
+
+    // module = selector->select_nodes(circle_model, id_name_selected_nodes);
   }
   if(by_name.size())
   {
   }
-
+  /*
   // Export to output Circle file
   luci::CircleExporter exporter;
 
@@ -336,6 +257,6 @@ int entry(int argc, char **argv)
     std::cerr << "ERROR: Failed to export '" << output_path << "'" << std::endl;
     return EXIT_FAILURE;
   }
-
+  */
   return 0;
 }
