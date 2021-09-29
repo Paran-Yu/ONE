@@ -1,6 +1,6 @@
 #!/bin/bash
-# compiler/circle-opselector/test/opselector_test.sh while_dynamic.tflite "1 2 3 4"
-# compiler/circle-opselector/test/opselector_test.sh tflite_files/Part_Sqrt_Rsqrt_001.tflite "0 1 2"
+# compiler/circle-opselector-test/opselector_test.sh inception_v3.tflite "0 1 2 3 121 122 123 124 125"
+# compiler/circle-opselector-test/opselector_test.sh inception_v3.tflite "0-12"
 
 red=`tput setaf 1`
 blue=`tput setaf 4`
@@ -27,16 +27,17 @@ echo $NODES > $TEMP_PATH/opcodelist.txt
 if ! python3 $ROOT_PATH/tools/tflitefile_tool/select_operator.py $TFLITE_PATH $TEMP_PATH/opcodelist.txt $TEMP_PATH/trimmed.tflite  > /dev/null; then
 	error_case "can't select tflite file(select_operator.py)"
 fi
-
+NODES=${NODES// /,}
 # tflite to circle
 $ROOT_PATH/build/compiler/tflite2circle/tflite2circle $TFLITE_PATH $TEMP_PATH/origin.circle
 
 # trim circle
-if ! eval $ROOT_PATH/build/compiler/circle-opselector/opselector --by_id \"$NODES\" --input $TEMP_PATH/origin.circle --output $TEMP_PATH/trimmed.circle  > /dev/null; then
+if ! eval $ROOT_PATH/build/compiler/circle-opselector/circle-opselector --by_id \"$NODES\" $TEMP_PATH/origin.circle $TEMP_PATH/trimmed.circle  > /dev/null; then
 	error_case "can't select circle file(circle-opselector)"
 fi
 
 # tflite to nnpacakge and create golden value
+# ./tools/nnpackage_tool/sth2nnpkgtc/tflite2nnpkgtc.sh -o ./temp ./test_temp/trimmed.tflite
 if ! $ROOT_PATH/tools/nnpackage_tool/sth2nnpkgtc/tflite2nnpkgtc.sh -o $TEMP_PATH $TEMP_PATH/trimmed.tflite  > /dev/null; then
 	error_case "can't convert tflite to nnpackage"
 fi
@@ -62,5 +63,6 @@ if ! $ROOT_PATH/Product/out/test/onert-test nnpkg-test trimmed > /dev/null; then
 else
 	echo "${blue}test success -- $TFLITE_NAME, $NODES"
 fi
+exit 0
 rm -r $TEMP_PATH
 rm -r $ROOT_PATH/trimmed

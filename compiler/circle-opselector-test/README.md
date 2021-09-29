@@ -8,11 +8,12 @@
 
 - `tflite-file-name` must be contained in [tflite receipes](https://github.com/Samsung/ONE/tree/master/res/TensorFlowLiteRecipes)
 - `selected nodes` format is `"0 1 3"`
+- tflite file **must** located in `build/compiler/common-artifacts` folder.
 
 ```
 $ ./opselector_test.sh [tflite-file-name] [selected nodes]
 # ex)
-$ ./compiler/circle-opselector-test/opselector_test.sh Part_Sqrt_Rsqrt_Add_002 "0 1 2 3"
+$ ./compiler/circle-opselector-test/opselector_test.sh Part_Sqrt_Rsqrt_Add_002.tflite "0 1 2 3"
 ```
 
 This test compares between the result of `circle-opselector` and [select-operator.py](https://github.com/Samsung/ONE/blob/master/tools/tflitefile_tool/select_operator.py) in tflite_tool.
